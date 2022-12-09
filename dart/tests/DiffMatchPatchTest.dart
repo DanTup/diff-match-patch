@@ -45,7 +45,11 @@ class Expect {
     throw new Exception('Expect.throws($msg) fails');
   }
 
-  static void listEquals(List expected, List actual, String msg) {
+  static void listEquals(List expected, List? actual, String msg) {
+    if (actual == null) {
+      throw new Exception('Expect.listEquals( '
+            'expected: <not-null>, actual: <null> $msg) fails');
+    }
     int n = (expected.length < actual.length) ? expected.length : actual.length;
     for (int i = 0; i < n; i++) {
       if (expected[i] != actual[i]) {
@@ -95,7 +99,7 @@ List<String> _diff_rebuildtexts(diffs) {
   return [text1.toString(), text2.toString()];
 }
 
-DiffMatchPatch dmp;
+final DiffMatchPatch dmp = new DiffMatchPatch();
 
 // DIFF TEST FUNCTIONS
 
@@ -588,9 +592,6 @@ void testDiffMain() {
   List<String> texts_linemode = _diff_rebuildtexts(dmp.diff_main(a, b, true));
   List<String> texts_textmode = _diff_rebuildtexts(dmp.diff_main(a, b, false));
   Expect.listEquals(texts_textmode, texts_linemode, 'diff_main: Overlap line-mode.');
-
-  // Test null inputs.
-  Expect.throws(() => dmp.diff_main(null, null), 'diff_main: Null inputs.');
 }
 
 
@@ -667,9 +668,6 @@ void testMatchMain() {
   dmp.Match_Threshold = 0.7;
   Expect.equals(4, dmp.match_main('I am the very model of a modern major general.', ' that berry ', 5), 'match_main: Complex match.');
   dmp.Match_Threshold = 0.5;
-
-  // Test null inputs.
-  Expect.throws(() => dmp.match_main(null, null, 0), 'match_main: Null inputs.');
 }
 
 
@@ -909,8 +907,6 @@ void testPatchApply() {
 
 // Run each test.
 main() {
-  dmp = new DiffMatchPatch();
-
   testDiffCommonPrefix();
   testDiffCommonSuffix();
   testDiffCommonOverlap();

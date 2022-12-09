@@ -92,7 +92,7 @@ class DiffMatchPatch {
    * Returns a List of Diff objects.
    */
   List<Diff> diff_main(String text1, String text2,
-      [bool checklines = true, DateTime deadline]) {
+      [bool checklines = true, DateTime? deadline]) {
     // Set a deadline by which time the diff must be complete.
     if (deadline == null) {
       deadline = new DateTime.now();
@@ -103,10 +103,6 @@ class DiffMatchPatch {
         deadline = deadline
             .add(new Duration(milliseconds: (Diff_Timeout * 1000).toInt()));
       }
-    }
-    // Check for null inputs.
-    if (text1 == null || text2 == null) {
-      throw new ArgumentError('Null inputs. (diff_main)');
     }
 
     // Check for equality (speedup).
@@ -303,12 +299,8 @@ class DiffMatchPatch {
     final max_d = (text1_length + text2_length + 1) ~/ 2;
     final v_offset = max_d;
     final v_length = 2 * max_d;
-    final v1 = new List<int>(v_length);
-    final v2 = new List<int>(v_length);
-    for (int x = 0; x < v_length; x++) {
-      v1[x] = -1;
-      v2[x] = -1;
-    }
+    final v1 = new List<int>.filled(v_length, -1);
+    final v2 = new List<int>.filled(v_length, -1);
     v1[v_offset + 1] = 0;
     v2[v_offset + 1] = 0;
     final delta = text1_length - text2_length;
@@ -497,8 +489,9 @@ class DiffMatchPatch {
       }
       line = text.substring(lineStart, lineEnd + 1);
 
-      if (lineHash.containsKey(line)) {
-        chars.writeCharCode(lineHash[line]);
+      final char = lineHash[line];
+      if (char != null) {
+        chars.writeCharCode(char);
       } else {
         if (lineArray.length == maxLines) {
           // Bail out at 65535 because
@@ -538,7 +531,7 @@ class DiffMatchPatch {
    * Hack to allow unit tests to call private method.  Do not use.
    */
   void test_diff_charsToLines(List<Diff> diffs, List<String> lineArray) {
-     _diff_charsToLines(diffs, lineArray);
+    _diff_charsToLines(diffs, lineArray);
   }
 
   /**
@@ -645,7 +638,7 @@ class DiffMatchPatch {
    *     the suffix of text1, the prefix of text2, the suffix of text2 and the
    *     common middle.  Or null if there was no match.
    */
-  List<String> _diff_halfMatch(String text1, String text2) {
+  List<String>? _diff_halfMatch(String text1, String text2) {
     if (Diff_Timeout <= 0) {
       // Don't risk returning a non-optimal diff if we have unlimited time.
       return null;
@@ -666,7 +659,7 @@ class DiffMatchPatch {
     if (hm1 == null && hm2 == null) {
       return null;
     } else if (hm2 == null) {
-      hm = hm1;
+      hm = hm1!;
     } else if (hm1 == null) {
       hm = hm2;
     } else {
@@ -686,7 +679,7 @@ class DiffMatchPatch {
   /**
    * Hack to allow unit tests to call private method.  Do not use.
    */
-  List<String> test_diff_halfMatch(String text1, String text2) {
+  List<String>? test_diff_halfMatch(String text1, String text2) {
     return _diff_halfMatch(text1, text2);
   }
 
@@ -700,7 +693,7 @@ class DiffMatchPatch {
    *     the suffix of longtext, the prefix of shorttext, the suffix of
    *     shorttext and the common middle.  Or null if there was no match.
    */
-  List<String> _diff_halfMatchI(String longtext, String shorttext, int i) {
+  List<String>? _diff_halfMatchI(String longtext, String shorttext, int i) {
     // Start with a 1/4 length substring at position i as a seed.
     final seed =
         longtext.substring(i, i + (longtext.length / 4).floor().toInt());
@@ -744,7 +737,7 @@ class DiffMatchPatch {
     // Stack of indices where equalities are found.
     final equalities = <int>[];
     // Always equal to diffs[equalities.last()].text
-    String lastEquality = null;
+    String? lastEquality = null;
     int pointer = 0; // Index of current position.
     // Number of characters that changed prior to the equality.
     int length_insertions1 = 0;
@@ -995,7 +988,7 @@ class DiffMatchPatch {
     // Stack of indices where equalities are found.
     final equalities = <int>[];
     // Always equal to diffs[equalities.last()].text
-    String lastEquality = null;
+    String? lastEquality = null;
     int pointer = 0; // Index of current position.
     // Is there an insertion operation before the last equality.
     bool pre_ins = false;
@@ -1218,7 +1211,7 @@ class DiffMatchPatch {
     int chars2 = 0;
     int last_chars1 = 0;
     int last_chars2 = 0;
-    Diff lastDiff = null;
+    Diff? lastDiff = null;
     for (Diff aDiff in diffs) {
       if (aDiff.operation != Operation.insert) {
         // Equality or deletion.
@@ -1457,11 +1450,6 @@ class DiffMatchPatch {
    * Returns the best match index or -1.
    */
   int match_main(String text, String pattern, int loc) {
-    // Check for null inputs.
-    if (text == null || pattern == null) {
-      throw new ArgumentError('Null inputs. (match_main)');
-    }
-
     loc = max(0, min(loc, text.length));
     if (text == pattern) {
       // Shortcut (potentially not guaranteed by the algorithm)
@@ -1515,7 +1503,7 @@ class DiffMatchPatch {
 
     int bin_min, bin_mid;
     int bin_max = pattern.length + text.length;
-    List<int> last_rd;
+    late List<int> last_rd;
     for (int d = 0; d < pattern.length; d++) {
       // Scan for the best match; each iteration allows for one more error.
       // Run a binary search to determine how far from 'loc' we can stray at
@@ -1536,7 +1524,7 @@ class DiffMatchPatch {
       int start = max(1, loc - bin_mid + 1);
       int finish = min(loc + bin_mid, text.length) + pattern.length;
 
-      final rd = new List<int>(finish + 2);
+      final rd = new List.filled(finish + 2, 0);
       rd[finish + 1] = (1 << d) - 1;
       for (int j = finish; j >= start; j--) {
         int charMatch;
@@ -1544,7 +1532,7 @@ class DiffMatchPatch {
           // Out of range.
           charMatch = 0;
         } else {
-          charMatch = s[text[j - 1]];
+          charMatch = s[text[j - 1]]!;
         }
         if (d == 0) {
           // First pass: exact match.
@@ -1618,7 +1606,7 @@ class DiffMatchPatch {
       s[pattern[i]] = 0;
     }
     for (int i = 0; i < pattern.length; i++) {
-      s[pattern[i]] = s[pattern[i]] | (1 << (pattern.length - i - 1));
+      s[pattern[i]] = s[pattern[i]]! | (1 << (pattern.length - i - 1));
     }
     return s;
   }
@@ -1710,16 +1698,16 @@ class DiffMatchPatch {
         diff_cleanupSemantic(diffs);
         diff_cleanupEfficiency(diffs);
       }
-    } else if (a is List && opt_b == null && opt_c == null) {
+    } else if (a is List<Diff> && opt_b == null && opt_c == null) {
       // Method 2: diffs
       // Compute text1 from diffs.
       diffs = a;
       text1 = diff_text1(diffs);
-    } else if (a is String && opt_b is List && opt_c == null) {
+    } else if (a is String && opt_b is List<Diff> && opt_c == null) {
       // Method 3: text1, diffs
       text1 = a;
       diffs = opt_b;
-    } else if (a is String && opt_b is String && opt_c is List) {
+    } else if (a is String && opt_b is String && opt_c is List<Diff>) {
       // Method 4: text1, text2, diffs
       // text2 is not used.
       text1 = a;
@@ -1852,7 +1840,7 @@ class DiffMatchPatch {
     // 20, but the first patch was found at 12, delta is 2 and the second patch
     // has an effective expected position of 22.
     int delta = 0;
-    final results = new List<bool>(patches.length);
+    final results = new List<Object?>.filled(patches.length, null);
     for (Patch aPatch in patches) {
       int expected_loc = aPatch.start2 + delta;
       String text1 = diff_text1(aPatch.diffs);
@@ -2128,39 +2116,39 @@ class DiffMatchPatch {
     final patchHeader =
         new RegExp('^@@ -(\\d+),?(\\d*) \\+(\\d+),?(\\d*) @@\$');
     while (textPointer < text.length) {
-      Match m = patchHeader.firstMatch(text[textPointer]);
+      Match? m = patchHeader.firstMatch(text[textPointer]);
       if (m == null) {
         throw new ArgumentError('Invalid patch string: ${text[textPointer]}');
       }
       final patch = new Patch();
       patches.add(patch);
-      patch.start1 = int.parse(m.group(1));
-      if (m.group(2).isEmpty) {
+      patch.start1 = int.parse(m.group(1)!);
+      if (m.group(2)!.isEmpty) {
         patch.start1--;
         patch.length1 = 1;
       } else if (m.group(2) == '0') {
         patch.length1 = 0;
       } else {
         patch.start1--;
-        patch.length1 = int.parse(m.group(2));
+        patch.length1 = int.parse(m.group(2)!);
       }
 
-      patch.start2 = int.parse(m.group(3));
-      if (m.group(4).isEmpty) {
+      patch.start2 = int.parse(m.group(3)!);
+      if (m.group(4)!.isEmpty) {
         patch.start2--;
         patch.length2 = 1;
       } else if (m.group(4) == '0') {
         patch.length2 = 0;
       } else {
         patch.start2--;
-        patch.length2 = int.parse(m.group(4));
+        patch.length2 = int.parse(m.group(4)!);
       }
       textPointer++;
 
       while (textPointer < text.length) {
         if (!text[textPointer].isEmpty) {
           final sign = text[textPointer][0];
-          String line;
+          late String line;
           try {
             line = Uri.decodeFull(text[textPointer].substring(1));
           } on ArgumentError {
